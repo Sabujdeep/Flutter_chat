@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "49920498148",
+    "project_id": "flutterinappmessaging-ac428",
+    "storage_bucket": "flutterinappmessaging-ac428.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:49920498148:android:94760686ed4a0e9f8a8ff1",
+        "android_client_info": {
+          "package_name": "com.example.flutter_in_app_messaging"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBhs99KydjheBMBFn2xBpuRDq8-R5ZVyZ4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
