@@ -2,16 +2,13 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'services/websocket_service.dart';
 import 'firebase_options.dart';
-import 'dart:convert';
-
+import 'dart:math';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-
   runApp(const MyApp());
 }
 
@@ -20,7 +17,10 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(home: ChatScreen());
+    return const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: ChatScreen(),
+    );
   }
 }
 
@@ -35,21 +35,24 @@ class _ChatScreenState extends State<ChatScreen> {
   final WebSocketService _socketService = WebSocketService();
   final TextEditingController _controller = TextEditingController();
 
+  late String myUserId;
   final List<Map<String, dynamic>> messages = [];
 
+  @override
+  void initState() {
+    super.initState();
 
-@override
-void initState() {
-  super.initState();
+    // Generate random user ID
+    myUserId = "User${Random().nextInt(1000)}";
 
-  _socketService.connect();
+    _socketService.connect();
 
-  _socketService.messagesStream.listen((message) {
-    setState(() {
-      messages.add(message);
+    _socketService.messagesStream.listen((message) {
+      setState(() {
+        messages.add(message);
+      });
     });
-  });
-}
+  }
 
   @override
   void dispose() {
@@ -61,7 +64,7 @@ void initState() {
   void sendMessage() {
     if (_controller.text.isNotEmpty) {
       final message = {
-        "sender": "User1",
+        "senderId": myUserId,
         "text": _controller.text,
       };
 
@@ -70,23 +73,20 @@ void initState() {
     }
   }
 
-  Widget buildMessageBubble(Map<String, dynamic> msg) {
-    final bool isMe = msg["sender"] == "User1";
+  Widget buildMessageBubble(Map<String, dynamic> message) {
+    final bool isMe = message["senderId"] == myUserId;
 
     return Align(
-      alignment:
-          isMe ? Alignment.centerRight : Alignment.centerLeft,
+      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        margin: const EdgeInsets.symmetric(
-            vertical: 4, horizontal: 8),
+        margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color:
-              isMe ? Colors.blue : Colors.grey.shade300,
+          color: isMe ? Colors.blue : Colors.grey[300],
           borderRadius: BorderRadius.circular(16),
         ),
         child: Text(
-          msg["text"],
+          message["text"],
           style: TextStyle(
             color: isMe ? Colors.white : Colors.black,
           ),
@@ -98,26 +98,30 @@ void initState() {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar:
-          AppBar(title: const Text("Two Way WebSocket Chat")),
+      appBar: AppBar(
+        title: Text("WebSocket Chat ($myUserId)"),
+      ),
       body: Column(
         children: [
           Expanded(
             child: ListView.builder(
               itemCount: messages.length,
               itemBuilder: (context, index) {
-                return buildMessageBubble(
-                    messages[index]);
+                return buildMessageBubble(messages[index]);
               },
             ),
           ),
           Row(
             children: [
               Expanded(
-                child: TextField(
-                  controller: _controller,
-                  decoration: const InputDecoration(
-                      hintText: "Enter message"),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: TextField(
+                    controller: _controller,
+                    decoration: const InputDecoration(
+                      hintText: "Enter message",
+                    ),
+                  ),
                 ),
               ),
               IconButton(
