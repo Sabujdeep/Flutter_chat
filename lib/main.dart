@@ -1,12 +1,18 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'services/websocket_service.dart';
+import 'firebase_options.dart';
+import 'dart:convert';
 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  runApp(MyApp());
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -28,44 +34,80 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final WebSocketService _socketService = WebSocketService();
   final TextEditingController _controller = TextEditingController();
-  final List<String> messages = [];
 
-  @override
-  void initState() {
-    super.initState();
-    _socketService.connect();
+  final List<Map<String, dynamic>> messages = [];
 
-    _socketService.stream.listen((message) {
-      setState(() {
-        messages.add(message.toString());
-      });
+
+@override
+void initState() {
+  super.initState();
+
+  _socketService.connect();
+
+  _socketService.messagesStream.listen((message) {
+    setState(() {
+      messages.add(message);
     });
-  }
+  });
+}
 
   @override
   void dispose() {
     _socketService.disconnect();
+    _controller.dispose();
     super.dispose();
   }
 
   void sendMessage() {
     if (_controller.text.isNotEmpty) {
-      _socketService.sendMessage(_controller.text);
+      final message = {
+        "sender": "User1",
+        "text": _controller.text,
+      };
+
+      _socketService.sendMessage(message);
       _controller.clear();
     }
+  }
+
+  Widget buildMessageBubble(Map<String, dynamic> msg) {
+    final bool isMe = msg["sender"] == "User1";
+
+    return Align(
+      alignment:
+          isMe ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.symmetric(
+            vertical: 4, horizontal: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color:
+              isMe ? Colors.blue : Colors.grey.shade300,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Text(
+          msg["text"],
+          style: TextStyle(
+            color: isMe ? Colors.white : Colors.black,
+          ),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Simple WebSocket Chat")),
+      appBar:
+          AppBar(title: const Text("Two Way WebSocket Chat")),
       body: Column(
         children: [
           Expanded(
             child: ListView.builder(
               itemCount: messages.length,
               itemBuilder: (context, index) {
-                return ListTile(title: Text(messages[index]));
+                return buildMessageBubble(
+                    messages[index]);
               },
             ),
           ),
@@ -74,10 +116,14 @@ class _ChatScreenState extends State<ChatScreen> {
               Expanded(
                 child: TextField(
                   controller: _controller,
-                  decoration: const InputDecoration(hintText: "Enter message"),
+                  decoration: const InputDecoration(
+                      hintText: "Enter message"),
                 ),
               ),
-              IconButton(icon: const Icon(Icons.send), onPressed: sendMessage),
+              IconButton(
+                icon: const Icon(Icons.send),
+                onPressed: sendMessage,
+              ),
             ],
           ),
         ],
